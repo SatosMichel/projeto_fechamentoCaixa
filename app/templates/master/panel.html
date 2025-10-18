@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Painel Administrativo - Brumake{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header mb-4">
+                <h1 class="page-title">
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    Painel Administrativo
+                </h1>
+                <p class="page-subtitle">Bem-vindo, {{ user.nome }}! Gerencie o sistema completo.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas do Sistema -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_users }}</h3>
+                    <p>Usuários Ativos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.pending_requests }}</h3>
+                    <p>Solicitações Pendentes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon primary">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.today_movements }}</h3>
+                    <p>Movimentações Hoje</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.today_completed }}</h3>
+                    <p>Finalizados Hoje</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu de Ações -->
+    <div class="row">
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-user-check text-success"></i>
+                </div>
+                <div class="card-content">
+                    <h5>Gerenciar Usuários</h5>
+                    <p>Aprovar solicitações, ativar/desativar usuários</p>
+                    <a href="#" onclick="alert('Em desenvolvimento')" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-cash-register text-info"></i>
+                </div>
+                <div class="card-content">
+                    <h5>Gerenciar Caixas</h5>
+                    <p>Configurar e monitorar caixas do sistema</p>
+                    <a href="#" onclick="alert('Em desenvolvimento')" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-chart-bar text-warning"></i>
+                </div>
+                <div class="card-content">
+                    <h5>Relatórios</h5>
+                    <p>Visualizar relatórios e análises detalhadas</p>
+                    <a href="#" onclick="alert('Em desenvolvimento')" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-history text-secondary"></i>
+                </div>
+                <div class="card-content">
+                    <h5>Logs do Sistema</h5>
+                    <p>Visualizar histórico de ações e auditoria</p>
+                    <a href="#" onclick="alert('Em desenvolvimento')" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-cogs text-dark"></i>
+                </div>
+                <div class="card-content">
+                    <h5>Configurações</h5>
+                    <p>Configurar parâmetros do sistema</p>
+                    <a href="#" onclick="alert('Em desenvolvimento')" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-download text-primary"></i>
+                </div>
+                <div class="card-content">
+                    <h5>Backup</h5>
+                    <p>Fazer backup do banco de dados</p>
+                    <a href="#" onclick="alert('Em desenvolvimento')" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

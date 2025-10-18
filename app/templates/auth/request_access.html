@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitar Acesso - Sistema Brumake{% endblock %}
+
+{% block extra_css %}
+<style>
+    .request-container {
+        max-width: 600px;
+        margin: 2rem auto;
+    }
+    
+    .request-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 600;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .radio-card {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .radio-card:hover {
+        border-color: #667eea;
+        background-color: #f8f9ff;
+    }
+    
+    .radio-card.selected {
+        border-color: #667eea;
+        background-color: #f8f9ff;
+    }
+    
+    .password-strength {
+        height: 4px;
+        border-radius: 2px;
+        margin-top: 5px;
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="request-container">
+    <div class="request-card">
+        <div class="card-header">
+            <h2><i class="fas fa-user-plus me-2"></i>Solicitação de Acesso</h2>
+            <p class="mb-0">Preencha os dados para solicitar acesso ao sistema</p>
+        </div>
+        
+        <div class="card-body p-4">
+            <form method="POST" id="requestForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="nome" class="form-label">
+                                <i class="fas fa-user me-2"></i>Nome Completo *
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="nome" 
+                                   name="nome" 
+                                   placeholder="Seu nome completo"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">
+                                <i class="fas fa-at me-2"></i>Nome de Usuário *
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username" 
+                                   name="username" 
+                                   placeholder="Ex: joao.silva"
+                                   pattern="[a-zA-Z0-9._]+"
+                                   title="Apenas letras, números, pontos e underscores"
+                                   required>
+                            <small class="text-muted">Mínimo 3 caracteres, sem espaços</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock me-2"></i>Senha *
+                            </label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Digite uma senha segura"
+                                   minlength="6"
+                                   required>
+                            <div class="password-strength bg-light" id="passwordStrength"></div>
+                            <small class="text-muted">Mínimo 6 caracteres</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">
+                                <i class="fas fa-lock me-2"></i>Confirmar Senha *
+                            </label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   placeholder="Digite a senha novamente"
+                                   required>
+                            <small class="text-muted" id="passwordMatch"></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="fas fa-user-tag me-2"></i>Tipo de Acesso Solicitado *
+                    </label>
+                    
+                    <div class="radio-card" onclick="selectAccess('caixa')">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="nivel_acesso" id="nivel_caixa" value="caixa" required>
+                            <label class="form-check-label" for="nivel_caixa">
+                                <strong><i class="fas fa-cash-register me-2"></i>Usuário Caixa</strong>
+                                <br>
+                                <small class="text-muted">
+                                    Acesso ao fluxo de trabalho do caixa: abertura, sangria, despesas, fechamento e vendas.
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="radio-card" onclick="selectAccess('avancado')">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="nivel_acesso" id="nivel_avancado" value="avancado" required>
+                            <label class="form-check-label" for="nivel_avancado">
+                                <strong><i class="fas fa-chart-line me-2"></i>Usuário Avançado</strong>
+                                <br>
+                                <small class="text-muted">
+                                    Acesso completo: consultas, relatórios, criação de movimentação geral e todas as funcionalidades.
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Importante:</strong> Sua solicitação será analisada pelo administrador do sistema. 
+                    Você receberá um retorno sobre a aprovação em breve.
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar ao Login
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-submit">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar Solicitação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Verificação de força da senha
+    $('#password').on('input', function() {
+        var password = $(this).val();
+        var strength = calculatePasswordStrength(password);
+        var strengthBar = $('#passwordStrength');
+        
+        if (password.length === 0) {
+            strengthBar.removeClass().addClass('password-strength bg-light');
+            return;
+        }
+        
+        if (strength < 2) {
+            strengthBar.removeClass().addClass('password-strength bg-danger');
+        } else if (strength < 3) {
+            strengthBar.removeClass().addClass('password-strength bg-warning');
+        } else {
+            strengthBar.removeClass().addClass('password-strength bg-success');
+        }
+    });
+    
+    // Verificação de confirmação de senha
+    $('#confirm_password').on('input', function() {
+        var password = $('#password').val();
+        var confirm = $(this).val();
+        var match = $('#passwordMatch');
+        
+        if (confirm.length === 0) {
+            match.text('').removeClass();
+            return;
+        }
+        
+        if (password === confirm) {
+            match.text('✓ Senhas coincidem').removeClass().addClass('text-success');
+        } else {
+            match.text('✗ Senhas não coincidem').removeClass().addClass('text-danger');
+        }
+    });
+    
+    // Validação do nome de usuário
+    $('#username').on('input', function() {
+        var username = $(this).val();
+        var regex = /^[a-zA-Z0-9._]+$/;
+        
+        if (username.length > 0 && !regex.test(username)) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+    
+    // Validação do formulário
+    $('#requestForm').on('submit', function(e) {
+        var password = $('#password').val();
+        var confirm = $('#confirm_password').val();
+        var username = $('#username').val();
+        var nivel = $('input[name="nivel_acesso"]:checked').val();
+        
+        if (password !== confirm) {
+            e.preventDefault();
+            alert('As senhas não coincidem.');
+            return false;
+        }
+        
+        if (username.length < 3) {
+            e.preventDefault();
+            alert('O nome de usuário deve ter pelo menos 3 caracteres.');
+            return false;
+        }
+        
+        if (!nivel) {
+            e.preventDefault();
+            alert('Por favor, selecione um tipo de acesso.');
+            return false;
+        }
+    });
+});
+
+function selectAccess(type) {
+    $('.radio-card').removeClass('selected');
+    $('input[name="nivel_acesso"][value="' + type + '"]').prop('checked', true).closest('.radio-card').addClass('selected');
+}
+
+function calculatePasswordStrength(password) {
+    var strength = 0;
+    
+    if (password.length >= 6) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    
+    return strength;
+}
+</script>
+{% endblock %}

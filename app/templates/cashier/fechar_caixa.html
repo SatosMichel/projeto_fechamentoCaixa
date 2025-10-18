@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+
+{% block title %}Fechar Caixa - Sistema Brumake{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-card {
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .section-card:hover {
+        border-color: #0066cc;
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.15);
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin: -1px -1px 0 -1px;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .currency-display {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .positive { color: #28a745; }
+    .negative { color: #dc3545; }
+    .neutral { color: #6c757d; }
+    
+    .calculation-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-left: 4px solid #2196f3;
+    }
+    
+    .warning-card {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border-left: 4px solid #ffc107;
+    }
+    
+    .step-indicator {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('cashier.dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Fechar Caixa</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-stop-circle text-danger"></i>
+                        Fechar Movimentação de Caixa
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Caixa {{ movimentacao.numero_caixa }} • 
+                        Aberto às {{ movimentacao.hora_abertura }} • 
+                        Valor inicial: {{ "R$ {:,.2f}".format(movimentacao.valor_inicial).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                    </p>
+                </div>
+                <div>
+                    <span class="badge bg-warning fs-6">{{ session.user_name }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="form-container p-4">
+                <form method="POST" id="fecharCaixaForm" data-autosave="true">
+                    <!-- Informações da Abertura -->
+                    <div class="card calculation-card mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-info-circle text-primary"></i>
+                                Informações da Abertura
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Caixa:</strong> {{ movimentacao.numero_caixa }}</p>
+                                    <p><strong>Hora Abertura:</strong> {{ movimentacao.hora_abertura }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Valor Inicial:</strong> 
+                                        <span class="currency-display positive">
+                                            {{ "R$ {:,.2f}".format(movimentacao.valor_inicial).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                        </span>
+                                    </p>
+                                    {% if movimentacao.observacoes_abertura %}
+                                    <p><strong>Observações:</strong> {{ movimentacao.observacoes_abertura }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 1: Vendas -->
+                    <div class="card section-card">
+                        <div class="card-header section-header">
+                            <div class="d-flex align-items-center">
+                                <div class="step-indicator me-3">1</div>
+                                <h5 class="mb-0">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    Vendas por Forma de Pagamento
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="vendas_dinheiro" class="form-label">
+                                        <i class="fas fa-money-bill-wave text-success"></i>
+                                        Vendas em Dinheiro (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="vendas_dinheiro" name="vendas_dinheiro" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="vendas_cartao_credito" class="form-label">
+                                        <i class="fas fa-credit-card text-info"></i>
+                                        Cartão de Crédito (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="vendas_cartao_credito" name="vendas_cartao_credito" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="vendas_cartao_debito" class="form-label">
+                                        <i class="fas fa-credit-card text-warning"></i>
+                                        Cartão de Débito (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="vendas_cartao_debito" name="vendas_cartao_debito" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="vendas_pix" class="form-label">
+                                        <i class="fas fa-qrcode text-purple"></i>
+                                        PIX (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="vendas_pix" name="vendas_pix" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                </div>
+                                
+                                <div class="col-md-12 mb-3">
+                                    <label for="vendas_outros" class="form-label">
+                                        <i class="fas fa-ellipsis-h text-secondary"></i>
+                                        Outras Formas de Pagamento (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="vendas_outros" name="vendas_outros" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                    <div class="form-text">Ex: Cheques, vale-refeição, etc.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total de Vendas</h6>
+                                    <div class="currency-display positive" id="total-vendas">R$ 0,00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 2: Movimentações de Caixa -->
+                    <div class="card section-card">
+                        <div class="card-header section-header">
+                            <div class="d-flex align-items-center">
+                                <div class="step-indicator me-3">2</div>
+                                <h5 class="mb-0">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    Movimentações de Caixa
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="sangrias" class="form-label">
+                                        <i class="fas fa-arrow-down text-danger"></i>
+                                        Sangrias (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="sangrias" name="sangrias" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                    <div class="form-text">Dinheiro retirado do caixa</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="suprimentos" class="form-label">
+                                        <i class="fas fa-arrow-up text-success"></i>
+                                        Suprimentos (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="suprimentos" name="suprimentos" 
+                                           placeholder="R$ 0,00" data-autosave="true">
+                                    <div class="form-text">Dinheiro adicionado ao caixa</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 3: Contagem Final -->
+                    <div class="card section-card">
+                        <div class="card-header section-header">
+                            <div class="d-flex align-items-center">
+                                <div class="step-indicator me-3">3</div>
+                                <h5 class="mb-0">
+                                    <i class="fas fa-calculator"></i>
+                                    Contagem Final do Dinheiro
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="dinheiro_caixa" class="form-label">
+                                        <i class="fas fa-hand-holding-usd text-success"></i>
+                                        Dinheiro Contado no Caixa (R$)
+                                    </label>
+                                    <input type="text" class="form-control currency-input" 
+                                           id="dinheiro_caixa" name="dinheiro_caixa" 
+                                           placeholder="R$ 0,00" required data-autosave="true">
+                                    <div class="form-text">
+                                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                                        Conte todo o dinheiro físico presente no caixa
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body d-flex flex-column justify-content-center">
+                                            <h6 class="card-title text-center">Valor Esperado</h6>
+                                            <div class="currency-display neutral text-center" id="valor-esperado">R$ 0,00</div>
+                                            <small class="text-muted text-center">Calculado automaticamente</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 4: Observações -->
+                    <div class="card section-card">
+                        <div class="card-header section-header">
+                            <div class="d-flex align-items-center">
+                                <div class="step-indicator me-3">4</div>
+                                <h5 class="mb-0">
+                                    <i class="fas fa-sticky-note"></i>
+                                    Observações do Fechamento
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <label for="observacoes_fechamento" class="form-label">
+                                Observações finais (opcional)
+                            </label>
+                            <textarea class="form-control" id="observacoes_fechamento" 
+                                      name="observacoes_fechamento" rows="3"
+                                      placeholder="Registre qualquer observação sobre o fechamento, problemas encontrados, etc."
+                                      data-autosave="true"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('cashier.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Voltar
+                        </a>
+                        
+                        <button type="submit" class="btn btn-danger btn-lg" id="submit-btn">
+                            <i class="fas fa-stop-circle me-2"></i>
+                            Finalizar Fechamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Painel Lateral de Cálculos -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator"></i>
+                        Resumo de Cálculos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Total de Vendas -->
+                    <div class="mb-3">
+                        <h6>Total de Vendas</h6>
+                        <div class="currency-display positive" id="resumo-vendas">R$ 0,00</div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Movimentações -->
+                    <div class="mb-3">
+                        <h6>Movimentações</h6>
+                        <div class="row small">
+                            <div class="col-6">Sangrias:</div>
+                            <div class="col-6 text-end currency-display negative" id="resumo-sangrias">R$ 0,00</div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-6">Suprimentos:</div>
+                            <div class="col-6 text-end currency-display positive" id="resumo-suprimentos">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Cálculo do Valor Esperado -->
+                    <div class="mb-3">
+                        <h6>Cálculo do Valor Esperado</h6>
+                        <div class="row small">
+                            <div class="col-8">Valor Inicial:</div>
+                            <div class="col-4 text-end" id="calc-inicial">
+                                {{ "R$ {:,.2f}".format(movimentacao.valor_inicial).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                            </div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-8">+ Vendas em Dinheiro:</div>
+                            <div class="col-4 text-end" id="calc-vendas-dinheiro">R$ 0,00</div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-8">+ Suprimentos:</div>
+                            <div class="col-4 text-end" id="calc-suprimentos">R$ 0,00</div>
+                        </div>
+                        <div class="row small">
+                            <div class="col-8">- Sangrias:</div>
+                            <div class="col-4 text-end" id="calc-sangrias">R$ 0,00</div>
+                        </div>
+                        <hr style="margin: 0.5rem 0;">
+                        <div class="row">
+                            <div class="col-8"><strong>Valor Esperado:</strong></div>
+                            <div class="col-4 text-end">
+                                <strong class="currency-display neutral" id="calc-esperado">R$ 0,00</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Diferença -->
+                    <div class="mb-3">
+                        <h6>Diferença Final</h6>
+                        <div class="row">
+                            <div class="col-8">Contado no Caixa:</div>
+                            <div class="col-4 text-end currency-display" id="calc-contado">R$ 0,00</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-8">Valor Esperado:</div>
+                            <div class="col-4 text-end currency-display" id="calc-esperado-2">R$ 0,00</div>
+                        </div>
+                        <hr style="margin: 0.5rem 0;">
+                        <div class="row">
+                            <div class="col-8"><strong>Diferença:</strong></div>
+                            <div class="col-4 text-end">
+                                <strong class="currency-display neutral" id="calc-diferenca">R$ 0,00</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Alerta de Diferença -->
+                    <div class="alert alert-warning d-none" id="alerta-diferenca">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Atenção!</strong> Há diferença no caixa. Verifique a contagem.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle text-warning"></i>
+                    Confirmar Fechamento de Caixa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="confirmacao-detalhes">
+                    <!-- Preenchido via JavaScript -->
+                </div>
+                
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Após confirmar o fechamento, os dados não poderão ser alterados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmarFechamento()">
+                    <i class="fas fa-check"></i>
+                    Confirmar Fechamento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const valorInicial = {{ movimentacao.valor_inicial }};
+
+$(document).ready(function() {
+    // Carregar dados auto-salvos
+    loadAutoSavedData('fecharCaixaForm');
+    
+    // Configurar eventos de cálculo
+    $('.currency-input').on('input', function() {
+        calcularTotais();
+    });
+    
+    // Interceptar submit
+    $('#fecharCaixaForm').on('submit', function(e) {
+        e.preventDefault();
+        mostrarModalConfirmacao();
+    });
+    
+    // Cálculo inicial
+    calcularTotais();
+});
+
+function calcularTotais() {
+    // Obter valores dos campos
+    const vendas = {
+        dinheiro: currencyToFloat($('#vendas_dinheiro').val()),
+        credito: currencyToFloat($('#vendas_cartao_credito').val()),
+        debito: currencyToFloat($('#vendas_cartao_debito').val()),
+        pix: currencyToFloat($('#vendas_pix').val()),
+        outros: currencyToFloat($('#vendas_outros').val())
+    };
+    
+    const sangrias = currencyToFloat($('#sangrias').val());
+    const suprimentos = currencyToFloat($('#suprimentos').val());
+    const dinheiroContado = currencyToFloat($('#dinheiro_caixa').val());
+    
+    // Calcular totais
+    const totalVendas = vendas.dinheiro + vendas.credito + vendas.debito + vendas.pix + vendas.outros;
+    const valorEsperado = valorInicial + vendas.dinheiro + suprimentos - sangrias;
+    const diferenca = dinheiroContado - valorEsperado;
+    
+    // Atualizar displays principais
+    $('#total-vendas').text(formatCurrency(totalVendas));
+    $('#valor-esperado').text(formatCurrency(valorEsperado));
+    
+    // Atualizar resumo lateral
+    $('#resumo-vendas').text(formatCurrency(totalVendas));
+    $('#resumo-sangrias').text(formatCurrency(sangrias));
+    $('#resumo-suprimentos').text(formatCurrency(suprimentos));
+    
+    // Atualizar cálculo detalhado
+    $('#calc-vendas-dinheiro').text(formatCurrency(vendas.dinheiro));
+    $('#calc-suprimentos').text(formatCurrency(suprimentos));
+    $('#calc-sangrias').text(formatCurrency(sangrias));
+    $('#calc-esperado').text(formatCurrency(valorEsperado));
+    $('#calc-contado').text(formatCurrency(dinheiroContado));
+    $('#calc-esperado-2').text(formatCurrency(valorEsperado));
+    
+    // Atualizar diferença
+    $('#calc-diferenca').text(formatCurrency(diferenca));
+    
+    // Aplicar cores para diferença
+    const $diferenca = $('#calc-diferenca');
+    $diferenca.removeClass('positive negative neutral');
+    
+    if (diferenca > 0) {
+        $diferenca.addClass('positive');
+    } else if (diferenca < 0) {
+        $diferenca.addClass('negative');
+    } else {
+        $diferenca.addClass('neutral');
+    }
+    
+    // Mostrar/esconder alerta
+    const $alerta = $('#alerta-diferenca');
+    if (Math.abs(diferenca) > 0.01) { // Tolerância de 1 centavo
+        $alerta.removeClass('d-none');
+    } else {
+        $alerta.addClass('d-none');
+    }
+    
+    // Chamada para API de cálculo (opcional)
+    calcularDiferencaAPI();
+}
+
+function calcularDiferencaAPI() {
+    const data = {
+        valor_inicial: valorInicial,
+        vendas_dinheiro: currencyToFloat($('#vendas_dinheiro').val()),
+        sangrias: currencyToFloat($('#sangrias').val()),
+        suprimentos: currencyToFloat($('#suprimentos').val()),
+        dinheiro_caixa: currencyToFloat($('#dinheiro_caixa').val())
+    };
+    
+    $.ajax({
+        url: '/cashier/api/calcular_diferenca',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                // Verificar se cálculos locais estão corretos
+                console.log('Cálculo validado pela API');
+            }
+        },
+        error: function() {
+            console.log('Erro na validação do cálculo');
+        }
+    });
+}
+
+function mostrarModalConfirmacao() {
+    // Validar campos obrigatórios
+    if (!$('#dinheiro_caixa').val()) {
+        showAlert('Por favor, informe o valor contado no caixa.', 'error');
+        $('#dinheiro_caixa').focus();
+        return;
+    }
+    
+    // Montar resumo
+    const totalVendas = currencyToFloat($('#vendas_dinheiro').val()) + 
+                       currencyToFloat($('#vendas_cartao_credito').val()) + 
+                       currencyToFloat($('#vendas_cartao_debito').val()) + 
+                       currencyToFloat($('#vendas_pix').val()) + 
+                       currencyToFloat($('#vendas_outros').val());
+    
+    const valorEsperado = valorInicial + currencyToFloat($('#vendas_dinheiro').val()) + 
+                         currencyToFloat($('#suprimentos').val()) - 
+                         currencyToFloat($('#sangrias').val());
+    
+    const dinheiroContado = currencyToFloat($('#dinheiro_caixa').val());
+    const diferenca = dinheiroContado - valorEsperado;
+    
+    let resumo = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Vendas por Forma de Pagamento:</h6>
+                <ul>
+                    <li>Dinheiro: ${$('#vendas_dinheiro').val() || 'R$ 0,00'}</li>
+                    <li>Cartão Crédito: ${$('#vendas_cartao_credito').val() || 'R$ 0,00'}</li>
+                    <li>Cartão Débito: ${$('#vendas_cartao_debito').val() || 'R$ 0,00'}</li>
+                    <li>PIX: ${$('#vendas_pix').val() || 'R$ 0,00'}</li>
+                    <li>Outros: ${$('#vendas_outros').val() || 'R$ 0,00'}</li>
+                </ul>
+                <p><strong>Total de Vendas: ${formatCurrency(totalVendas)}</strong></p>
+            </div>
+            <div class="col-md-6">
+                <h6>Movimentações:</h6>
+                <ul>
+                    <li>Sangrias: ${$('#sangrias').val() || 'R$ 0,00'}</li>
+                    <li>Suprimentos: ${$('#suprimentos').val() || 'R$ 0,00'}</li>
+                </ul>
+                
+                <h6>Contagem Final:</h6>
+                <ul>
+                    <li>Valor Esperado: ${formatCurrency(valorEsperado)}</li>
+                    <li>Valor Contado: ${formatCurrency(dinheiroContado)}</li>
+                    <li><strong>Diferença: ${formatCurrency(diferenca)}</strong></li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    if (Math.abs(diferenca) > 0.01) {
+        resumo += `
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Atenção:</strong> Há uma diferença de ${formatCurrency(diferenca)} no caixa.
+            </div>
+        `;
+    }
+    
+    $('#confirmacao-detalhes').html(resumo);
+    $('#confirmModal').modal('show');
+}
+
+function confirmarFechamento() {
+    $('#confirmModal').modal('hide');
+    
+    // Limpar dados auto-salvos
+    clearAutoSavedData('fecharCaixaForm');
+    
+    // Submeter formulário
+    $('#fecharCaixaForm')[0].submit();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,490 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Operador de Caixa{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-card {
+        border-left: 4px solid;
+        transition: all 0.3s ease;
+    }
+    
+    .status-card.aberto {
+        border-left-color: #28a745;
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    }
+    
+    .status-card.fechado {
+        border-left-color: #dc3545;
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    }
+    
+    .caixa-card {
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    
+    .caixa-card:hover {
+        border-color: #0066cc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.15);
+    }
+    
+    .caixa-card.disponivel {
+        border-color: #28a745;
+        background: linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%);
+    }
+    
+    .caixa-card.em-uso {
+        border-color: #ffc107;
+        background: linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%);
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .quick-action {
+        border: 2px dashed #0066cc;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action:hover {
+        border-style: solid;
+        background: linear-gradient(135deg, #e6f3ff 0%, #cce7ff 100%);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-cash-register text-primary"></i>
+                        Dashboard - Operador de Caixa
+                    </h2>
+                    <p class="text-muted mb-0">Bem-vindo, {{ session.user_name }}! Data: {{ today.strftime('%d/%m/%Y') }}</p>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6">{{ session.user_level|title }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Atual -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card status-card {% if movimentacao %}aberto{% else %}fechado{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-2">
+                                <i class="fas fa-{% if movimentacao %}unlock{% else %}lock{% endif %} me-2"></i>
+                                Status do Caixa
+                            </h5>
+                            {% if movimentacao %}
+                                <p class="card-text mb-1">
+                                    <strong>Caixa {{ movimentacao.numero_caixa }} ABERTO</strong>
+                                </p>
+                                <p class="text-muted mb-0">
+                                    Aberto às {{ movimentacao.hora_abertura }} • 
+                                    Valor inicial: {{ "R$ {:,.2f}".format(movimentacao.valor_inicial).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                </p>
+                            {% else %}
+                                <p class="card-text mb-1">
+                                    <strong>Nenhum caixa aberto</strong>
+                                </p>
+                                <p class="text-muted mb-0">
+                                    Você não possui movimentação aberta para hoje
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% if movimentacao %}
+                                <a href="{{ url_for('cashier.fechar_caixa') }}" class="btn btn-danger btn-lg">
+                                    <i class="fas fa-stop-circle me-2"></i>
+                                    Fechar Caixa
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('cashier.iniciar_caixa') }}" class="btn btn-success btn-lg">
+                                    <i class="fas fa-play-circle me-2"></i>
+                                    Iniciar Caixa
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Suas Estatísticas
+                    </h5>
+                    {% if stats %}
+                        <div class="row">
+                            <div class="col-6">
+                                <h3 class="mb-1">{{ stats.total_fechamentos or 0 }}</h3>
+                                <small>Total Fechamentos</small>
+                            </div>
+                            <div class="col-6">
+                                <h3 class="mb-1">{{ stats.fechamentos_mes or 0 }}</h3>
+                                <small>Este Mês</small>
+                            </div>
+                        </div>
+                        {% if stats.media_valor %}
+                            <hr class="my-2">
+                            <p class="mb-0">
+                                <small>Média por fechamento:</small><br>
+                                <strong>{{ "R$ {:,.2f}".format(stats.media_valor).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong>
+                            </p>
+                        {% endif %}
+                    {% else %}
+                        <p class="mb-0">Sem dados disponíveis</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status dos Caixas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-desktop text-primary"></i>
+                Status dos Caixas
+            </h4>
+        </div>
+    </div>
+    
+    <div class="row" id="caixas-status">
+        {% for caixa in caixas %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+            <div class="card caixa-card disponivel" data-caixa="{{ caixa.numero }}">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-desktop text-primary"></i>
+                        Caixa {{ caixa.numero }}
+                    </h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ caixa.nome }}</h6>
+                    <div class="status-info">
+                        <span class="badge bg-success">Disponível</span>
+                    </div>
+                    <p class="card-text mt-2">
+                        <small class="text-muted">{{ caixa.descricao or 'Sem descrição' }}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-bolt text-warning"></i>
+                Ações Rápidas
+            </h4>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card quick-action text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <i class="fas fa-history fa-2x text-primary mb-3"></i>
+                    <h6 class="card-title">Histórico</h6>
+                    <p class="card-text">Ver suas movimentações anteriores</p>
+                    <a href="{{ url_for('cashier.historico') }}" class="btn btn-outline-primary mt-auto">
+                        <i class="fas fa-eye me-1"></i>
+                        Ver Histórico
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card quick-action text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <i class="fas fa-file-pdf fa-2x text-danger mb-3"></i>
+                    <h6 class="card-title">Último Relatório</h6>
+                    <p class="card-text">Acessar o último fechamento</p>
+                    <button class="btn btn-outline-danger mt-auto" onclick="buscarUltimoRelatorio()">
+                        <i class="fas fa-download me-1"></i>
+                        Ver Relatório
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card quick-action text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <i class="fas fa-question-circle fa-2x text-info mb-3"></i>
+                    <h6 class="card-title">Ajuda</h6>
+                    <p class="card-text">Guia de uso do sistema</p>
+                    <button class="btn btn-outline-info mt-auto" data-bs-toggle="modal" data-bs-target="#helpModal">
+                        <i class="fas fa-question me-1"></i>
+                        Ver Ajuda
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card quick-action text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <i class="fas fa-calculator fa-2x text-success mb-3"></i>
+                    <h6 class="card-title">Calculadora</h6>
+                    <p class="card-text">Ferramenta de cálculo rápido</p>
+                    <button class="btn btn-outline-success mt-auto" onclick="abrirCalculadora()">
+                        <i class="fas fa-calculator me-1"></i>
+                        Abrir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ajuda -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle text-info"></i>
+                    Guia de Uso - Operador de Caixa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="accordion" id="helpAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#help1">
+                                <i class="fas fa-play-circle text-success me-2"></i>
+                                Como iniciar o caixa?
+                            </button>
+                        </h2>
+                        <div id="help1" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Clique em "Iniciar Caixa" no dashboard</li>
+                                    <li>Selecione o número do caixa</li>
+                                    <li>Informe o valor inicial em dinheiro</li>
+                                    <li>Adicione observações se necessário</li>
+                                    <li>Clique em "Iniciar Movimentação"</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help2">
+                                <i class="fas fa-stop-circle text-danger me-2"></i>
+                                Como fechar o caixa?
+                            </button>
+                        </h2>
+                        <div id="help2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Clique em "Fechar Caixa" no dashboard</li>
+                                    <li>Preencha todos os valores de vendas</li>
+                                    <li>Informe sangrias e suprimentos</li>
+                                    <li>Conte o dinheiro no caixa</li>
+                                    <li>Confira a diferença calculada</li>
+                                    <li>Adicione observações e finalize</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help3">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                E se houver diferença no caixa?
+                            </button>
+                        </h2>
+                        <div id="help3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <p>Se houver diferença entre o valor esperado e o contado:</p>
+                                <ul>
+                                    <li>Conte o dinheiro novamente</li>
+                                    <li>Verifique se todos os valores foram informados corretamente</li>
+                                    <li>Documente a diferença nas observações</li>
+                                    <li>Em caso de grandes diferenças, comunique ao supervisor</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Calculadora -->
+<div class="modal fade" id="calculatorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calculator text-success"></i>
+                    Calculadora
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="calculator">
+                    <input type="text" class="form-control mb-3 text-end" id="calculator-display" readonly>
+                    <div class="row g-2">
+                        <div class="col-3">
+                            <button class="btn btn-outline-secondary w-100" onclick="clearCalculator()">C</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-secondary w-100" onclick="deleteLastDigit()">⌫</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-primary w-100" onclick="addToCalculator('/')">/</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-primary w-100" onclick="addToCalculator('*')">×</button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('7')">7</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('8')">8</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('9')">9</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-primary w-100" onclick="addToCalculator('-')">-</button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('4')">4</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('5')">5</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('6')">6</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-primary w-100" onclick="addToCalculator('+')">+</button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('1')">1</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('2')">2</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('3')">3</button>
+                        </div>
+                        <div class="col-3 row-span-2">
+                            <button class="btn btn-success w-100 h-100" onclick="calculateResult()" style="height: calc(100% + 0.5rem + 1px);">=</button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-6">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('0')">0</button>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-outline-dark w-100" onclick="addToCalculator('.')">.</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Atualizar status dos caixas
+    atualizarStatusCaixas();
+    
+    // Auto-refresh a cada 30 segundos
+    setInterval(atualizarStatusCaixas, 30000);
+});
+
+function atualizarStatusCaixas() {
+    // Implementar verificação de status dos caixas via AJAX
+    console.log('Atualizando status dos caixas...');
+}
+
+function buscarUltimoRelatorio() {
+    window.location.href = "{{ url_for('cashier.historico') }}";
+}
+
+function abrirCalculadora() {
+    $('#calculatorModal').modal('show');
+    clearCalculator();
+}
+
+// Funções da calculadora
+let calculatorInput = '';
+
+function addToCalculator(value) {
+    calculatorInput += value;
+    document.getElementById('calculator-display').value = calculatorInput;
+}
+
+function clearCalculator() {
+    calculatorInput = '';
+    document.getElementById('calculator-display').value = '';
+}
+
+function deleteLastDigit() {
+    calculatorInput = calculatorInput.slice(0, -1);
+    document.getElementById('calculator-display').value = calculatorInput;
+}
+
+function calculateResult() {
+    try {
+        // Substituir × por * para cálculo
+        let expression = calculatorInput.replace(/×/g, '*');
+        let result = eval(expression);
+        
+        if (isFinite(result)) {
+            calculatorInput = result.toString();
+            document.getElementById('calculator-display').value = calculatorInput;
+        } else {
+            throw new Error('Resultado inválido');
+        }
+    } catch (error) {
+        document.getElementById('calculator-display').value = 'Erro';
+        calculatorInput = '';
+    }
+}
+</script>
+{% endblock %}

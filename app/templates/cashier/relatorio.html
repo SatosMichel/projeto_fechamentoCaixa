@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Fechamento - Sistema Brumake{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        .container-fluid { margin: 0; padding: 0; }
+        .card { border: 1px solid #000; box-shadow: none; }
+    }
+    
+    .relatorio-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header-empresa {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 2rem;
+        border-radius: 15px 15px 0 0;
+    }
+    
+    .secao-relatorio {
+        border-bottom: 2px solid #e9ecef;
+        padding: 1.5rem 0;
+    }
+    
+    .secao-relatorio:last-child {
+        border-bottom: none;
+    }
+    
+    .valor-positivo { color: #28a745; font-weight: bold; }
+    .valor-negativo { color: #dc3545; font-weight: bold; }
+    .valor-neutro { color: #6c757d; font-weight: bold; }
+    
+    .tabela-valores {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+    
+    .diferenca-destaque {
+        font-size: 1.5rem;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .diferenca-ok {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        border: 2px solid #28a745;
+    }
+    
+    .diferenca-atencao {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        color: #856404;
+        border: 2px solid #ffc107;
+    }
+    
+    .diferenca-problema {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+        border: 2px solid #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho de Navegação -->
+    <div class="row mb-4 no-print">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('cashier.dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Relatório de Fechamento</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="fas fa-file-alt text-primary"></i>
+                    Relatório de Fechamento
+                </h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary" onclick="window.print()">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                    <a href="{{ url_for('cashier.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Relatório -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="relatorio-container">
+                <!-- Cabeçalho da Empresa -->
+                <div class="header-empresa">
+                    <h1 class="mb-3">BRUMAKE COMERCIAL E SERVIÇOS LTDA</h1>
+                    <h3 class="mb-2">RELATÓRIO DE FECHAMENTO DE CAIXA</h3>
+                    <h4 class="mb-0">{{ movimentacao.caixa_nome }} - Caixa {{ movimentacao.numero_caixa }}</h4>
+                </div>
+
+                <div class="p-4">
+                    <!-- Informações Gerais -->
+                    <div class="secao-relatorio">
+                        <h5 class="text-primary mb-3">
+                            <i class="fas fa-info-circle"></i>
+                            Informações Gerais
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Data:</strong></td>
+                                        <td>{{ movimentacao.data|dateformat('%d/%m/%Y') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Operador:</strong></td>
+                                        <td>{{ movimentacao.operador_nome }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Caixa:</strong></td>
+                                        <td>{{ movimentacao.caixa_nome }} ({{ movimentacao.numero_caixa }})</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Hora Abertura:</strong></td>
+                                        <td>{{ movimentacao.hora_abertura }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Hora Fechamento:</strong></td>
+                                        <td>{{ movimentacao.hora_fechamento }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Status:</strong></td>
+                                        <td>
+                                            <span class="badge bg-success">{{ movimentacao.status|title }}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vendas por Forma de Pagamento -->
+                    <div class="secao-relatorio">
+                        <h5 class="text-primary mb-3">
+                            <i class="fas fa-shopping-cart"></i>
+                            Vendas por Forma de Pagamento
+                        </h5>
+                        <div class="tabela-valores">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table">
+                                        <tr>
+                                            <td><i class="fas fa-money-bill-wave text-success"></i> Vendas em Dinheiro:</td>
+                                            <td class="text-end valor-positivo">
+                                                {{ "R$ {:,.2f}".format(movimentacao.vendas_dinheiro or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-credit-card text-info"></i> Cartão de Crédito:</td>
+                                            <td class="text-end valor-positivo">
+                                                {{ "R$ {:,.2f}".format(movimentacao.vendas_cartao_credito or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-credit-card text-warning"></i> Cartão de Débito:</td>
+                                            <td class="text-end valor-positivo">
+                                                {{ "R$ {:,.2f}".format(movimentacao.vendas_cartao_debito or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table">
+                                        <tr>
+                                            <td><i class="fas fa-qrcode text-purple"></i> PIX:</td>
+                                            <td class="text-end valor-positivo">
+                                                {{ "R$ {:,.2f}".format(movimentacao.vendas_pix or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-ellipsis-h text-secondary"></i> Outras Formas:</td>
+                                            <td class="text-end valor-positivo">
+                                                {{ "R$ {:,.2f}".format(movimentacao.vendas_outros or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr class="table-primary">
+                                            <td><strong><i class="fas fa-calculator"></i> TOTAL DE VENDAS:</strong></td>
+                                            <td class="text-end">
+                                                <strong class="valor-positivo fs-5">
+                                                    {{ "R$ {:,.2f}".format(movimentacao.valor_total or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Movimentações de Caixa -->
+                    <div class="secao-relatorio">
+                        <h5 class="text-primary mb-3">
+                            <i class="fas fa-exchange-alt"></i>
+                            Movimentações de Caixa
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-play-circle text-success"></i>
+                                            Valor Inicial
+                                        </h6>
+                                        <div class="valor-positivo fs-5">
+                                            {{ "R$ {:,.2f}".format(movimentacao.valor_inicial or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-arrow-down text-danger"></i>
+                                            Sangrias
+                                        </h6>
+                                        <div class="valor-negativo fs-5">
+                                            {{ "R$ {:,.2f}".format(movimentacao.sangrias or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-arrow-up text-success"></i>
+                                            Suprimentos
+                                        </h6>
+                                        <div class="valor-positivo fs-5">
+                                            {{ "R$ {:,.2f}".format(movimentacao.suprimentos or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conferência de Caixa -->
+                    <div class="secao-relatorio">
+                        <h5 class="text-primary mb-3">
+                            <i class="fas fa-calculator"></i>
+                            Conferência de Caixa
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="tabela-valores">
+                                    <table class="table">
+                                        <tr>
+                                            <td>Valor Inicial:</td>
+                                            <td class="text-end">
+                                                {{ "R$ {:,.2f}".format(movimentacao.valor_inicial or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>+ Vendas em Dinheiro:</td>
+                                            <td class="text-end">
+                                                {{ "R$ {:,.2f}".format(movimentacao.vendas_dinheiro or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>+ Suprimentos:</td>
+                                            <td class="text-end">
+                                                {{ "R$ {:,.2f}".format(movimentacao.suprimentos or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>- Sangrias:</td>
+                                            <td class="text-end">
+                                                {{ "R$ {:,.2f}".format(movimentacao.sangrias or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr class="table-info">
+                                            <td><strong>= Valor Esperado:</strong></td>
+                                            <td class="text-end">
+                                                <strong class="valor-neutro">
+                                                    {{ "R$ {:,.2f}".format(movimentacao.valor_esperado or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                        <tr class="table-warning">
+                                            <td><strong>Dinheiro Contado:</strong></td>
+                                            <td class="text-end">
+                                                <strong class="valor-neutro">
+                                                    {{ "R$ {:,.2f}".format(movimentacao.dinheiro_caixa or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {% set diferenca = movimentacao.diferenca or 0 %}
+                                {% if diferenca == 0 %}
+                                    <div class="diferenca-destaque diferenca-ok">
+                                        <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                                        CAIXA FECHADO<br>
+                                        SEM DIFERENÇAS
+                                    </div>
+                                {% elif diferenca|abs <= 5 %}
+                                    <div class="diferenca-destaque diferenca-atencao">
+                                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                        DIFERENÇA<br>
+                                        {{ "R$ {:,.2f}".format(diferenca).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                    </div>
+                                {% else %}
+                                    <div class="diferenca-destaque diferenca-problema">
+                                        <i class="fas fa-times-circle fa-2x mb-2"></i><br>
+                                        DIFERENÇA ALTA<br>
+                                        {{ "R$ {:,.2f}".format(diferenca).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observações -->
+                    {% if movimentacao.observacoes_abertura or movimentacao.observacoes_fechamento %}
+                    <div class="secao-relatorio">
+                        <h5 class="text-primary mb-3">
+                            <i class="fas fa-sticky-note"></i>
+                            Observações
+                        </h5>
+                        {% if movimentacao.observacoes_abertura %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-play-circle text-success"></i>
+                                    Observações da Abertura
+                                </h6>
+                                <p class="card-text">{{ movimentacao.observacoes_abertura }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if movimentacao.observacoes_fechamento %}
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-stop-circle text-danger"></i>
+                                    Observações do Fechamento
+                                </h6>
+                                <p class="card-text">{{ movimentacao.observacoes_fechamento }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Assinaturas -->
+                    <div class="secao-relatorio">
+                        <h5 class="text-primary mb-4">
+                            <i class="fas fa-signature"></i>
+                            Assinaturas
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="text-center">
+                                    <div style="border-top: 2px solid #000; margin-top: 60px; padding-top: 10px;">
+                                        <strong>{{ movimentacao.operador_nome }}</strong><br>
+                                        <small>Operador de Caixa</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-center">
+                                    <div style="border-top: 2px solid #000; margin-top: 60px; padding-top: 10px;">
+                                        <strong>_____________________________</strong><br>
+                                        <small>Supervisor / Gerente</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rodapé do Relatório -->
+                    <div class="text-center mt-4 text-muted">
+                        <small>
+                            Relatório gerado automaticamente pelo Sistema Brumake em {{ now.strftime('%d/%m/%Y às %H:%M') }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Ação (não imprimem) -->
+<div class="container-fluid py-3 no-print">
+    <div class="row">
+        <div class="col-12 text-center">
+            <div class="btn-group">
+                <button class="btn btn-primary btn-lg" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>
+                    Imprimir Relatório
+                </button>
+                <a href="{{ url_for('cashier.historico') }}" class="btn btn-outline-info btn-lg">
+                    <i class="fas fa-history me-2"></i>
+                    Ver Histórico
+                </a>
+                <a href="{{ url_for('cashier.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Adicionar data/hora atual para impressão
+    window.addEventListener('beforeprint', function() {
+        document.title = 'Relatório Fechamento Caixa {{ movimentacao.numero_caixa }} - {{ movimentacao.data }}';
+    });
+});
+</script>
+{% endblock %}

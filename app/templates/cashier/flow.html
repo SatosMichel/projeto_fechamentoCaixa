@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Operador de Caixa - Brumake{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header mb-4">
+                <h1 class="page-title">
+                    <i class="fas fa-cash-register text-success me-2"></i>
+                    Fluxo de Caixa
+                </h1>
+                <p class="page-subtitle">Bem-vindo, {{ user.nome }}! Gerencie as operações do caixa.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fluxo de Trabalho -->
+    <div class="row">
+        <div class="col-12">
+            <div class="workflow-container">
+                <div class="workflow-step active">
+                    <div class="step-icon">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                    <div class="step-content">
+                        <h5>1. Selecionar Caixa</h5>
+                        <p>Escolha o caixa para iniciar operações</p>
+                        <a href="{{ url_for('cashier.select_cashbox') }}" class="btn btn-primary">
+                            <i class="fas fa-arrow-right me-1"></i>Iniciar
+                        </a>
+                    </div>
+                </div>
+
+                <div class="workflow-arrow">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="step-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="step-content">
+                        <h5>2. Suprimento Abertura</h5>
+                        <p>Definir valor inicial do caixa</p>
+                    </div>
+                </div>
+
+                <div class="workflow-arrow">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="step-icon">
+                        <i class="fas fa-minus-circle"></i>
+                    </div>
+                    <div class="step-content">
+                        <h5>3. Sangria</h5>
+                        <p>Retiradas de dinheiro do caixa</p>
+                    </div>
+                </div>
+
+                <div class="workflow-arrow">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="step-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="step-content">
+                        <h5>4. Despesas</h5>
+                        <p>Registrar despesas do período</p>
+                    </div>
+                </div>
+
+                <div class="workflow-arrow">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="step-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="step-content">
+                        <h5>5. Fechamento</h5>
+                        <p>Fechar caixa e conferir valores</p>
+                    </div>
+                </div>
+
+                <div class="workflow-arrow">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="step-icon">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <div class="step-content">
+                        <h5>6. Vendas Sankhya</h5>
+                        <p>Registrar vendas do sistema</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

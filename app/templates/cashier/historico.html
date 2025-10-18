@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico - Operador de Caixa{% endblock %}
+
+{% block extra_css %}
+<style>
+    .historico-container {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .movimentacao-card {
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .movimentacao-card:hover {
+        border-color: #0066cc;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 102, 204, 0.15);
+    }
+    
+    .status-badge.aberto {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .status-badge.fechado {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+    
+    .valor-display {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .valor-positivo { color: #28a745; }
+    .valor-negativo { color: #dc3545; }
+    .valor-neutro { color: #6c757d; }
+    
+    .diferenca-indicator {
+        border-radius: 50%;
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    
+    .diferenca-ok { background-color: #28a745; }
+    .diferenca-atencao { background-color: #ffc107; }
+    .diferenca-problema { background-color: #dc3545; }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .filter-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-left: 4px solid #2196f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('cashier.dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Histórico</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-history text-primary"></i>
+                        Histórico de Movimentações
+                    </h2>
+                    <p class="text-muted mb-0">Suas movimentações de caixa anteriores</p>
+                </div>
+                <div>
+                    <span class="badge bg-info fs-6">{{ session.user_name }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Resumidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-calculator"></i>
+                        Total de Fechamentos
+                    </h5>
+                    <h2 class="mb-0">{{ total_count }}</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-calendar-month"></i>
+                        Este Mês
+                    </h5>
+                    <h2 class="mb-0">
+                        {% set inicio_mes = now.replace(day=1).strftime('%Y-%m-%d') %}
+                        {{ movimentacoes|selectattr('data', 'ge', inicio_mes)|list|length }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Média por Dia
+                    </h5>
+                    <h2 class="mb-0">
+                        {% set media = (movimentacoes|sum(attribute='valor_total') / (movimentacoes|length)) if movimentacoes else 0 %}
+                        {{ "R$ {:,.0f}".format(media).replace(',', '.') }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Com Diferenças
+                    </h5>
+                    <h2 class="mb-0">
+                        {{ movimentacoes|selectattr('diferenca')|selectattr('diferenca', 'ne', 0)|list|length }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card filter-card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-filter text-primary"></i>
+                        Filtros de Pesquisa
+                    </h6>
+                    <form method="GET" id="filterForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="data_inicio" class="form-label">Data Início</label>
+                                <input type="date" class="form-control" id="data_inicio" name="data_inicio"
+                                       value="{{ request.args.get('data_inicio', '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="data_fim" class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" id="data_fim" name="data_fim"
+                                       value="{{ request.args.get('data_fim', '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">Todos</option>
+                                    <option value="aberto" {% if request.args.get('status') == 'aberto' %}selected{% endif %}>Aberto</option>
+                                    <option value="fechado" {% if request.args.get('status') == 'fechado' %}selected{% endif %}>Fechado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <div class="btn-group w-100">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Filtrar
+                                    </button>
+                                    <a href="{{ url_for('cashier.historico') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times"></i> Limpar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Movimentações -->
+    <div class="row">
+        <div class="col-12">
+            <div class="historico-container p-4">
+                {% if movimentacoes %}
+                    {% for movimentacao in movimentacoes %}
+                    <div class="card movimentacao-card">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <!-- Informações Básicas -->
+                                <div class="col-lg-3 col-md-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-desktop text-primary me-2"></i>
+                                        <strong>Caixa {{ movimentacao.numero_caixa }}</strong>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-calendar text-muted me-2"></i>
+                                        <span>{{ movimentacao.data|dateformat('%d/%m/%Y') }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-clock text-muted me-2"></i>
+                                        <span>{{ movimentacao.hora_abertura }}
+                                        {% if movimentacao.hora_fechamento %}
+                                            - {{ movimentacao.hora_fechamento }}
+                                        {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Status e Valores -->
+                                <div class="col-lg-3 col-md-4">
+                                    <div class="mb-2">
+                                        <span class="badge status-badge {{ movimentacao.status }}">
+                                            {% if movimentacao.status == 'aberto' %}
+                                                <i class="fas fa-unlock"></i> Aberto
+                                            {% else %}
+                                                <i class="fas fa-check"></i> Fechado
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    {% if movimentacao.status == 'fechado' %}
+                                    <div class="valor-display valor-positivo">
+                                        {{ "R$ {:,.2f}".format(movimentacao.valor_total or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                    </div>
+                                    <small class="text-muted">Total de Vendas</small>
+                                    {% else %}
+                                    <div class="valor-display valor-neutro">
+                                        {{ "R$ {:,.2f}".format(movimentacao.valor_inicial or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                    </div>
+                                    <small class="text-muted">Valor Inicial</small>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Diferença -->
+                                <div class="col-lg-2 col-md-4">
+                                    {% if movimentacao.status == 'fechado' and movimentacao.diferenca is not none %}
+                                        {% set diferenca = movimentacao.diferenca %}
+                                        {% if diferenca == 0 %}
+                                            <span class="diferenca-indicator diferenca-ok"></span>
+                                            <span class="valor-neutro">Sem diferença</span>
+                                        {% elif diferenca|abs <= 5 %}
+                                            <span class="diferenca-indicator diferenca-atencao"></span>
+                                            <span class="valor-{% if diferenca > 0 %}positivo{% else %}negativo{% endif %}">
+                                                {{ "R$ {:,.2f}".format(diferenca).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </span>
+                                        {% else %}
+                                            <span class="diferenca-indicator diferenca-problema"></span>
+                                            <span class="valor-{% if diferenca > 0 %}positivo{% else %}negativo{% endif %}">
+                                                {{ "R$ {:,.2f}".format(diferenca).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                            </span>
+                                        {% endif %}
+                                        <br><small class="text-muted">Diferença</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Ações -->
+                                <div class="col-lg-4 text-end">
+                                    {% if movimentacao.status == 'fechado' %}
+                                        <a href="{{ url_for('cashier.relatorio_fechamento', movimentacao_id=movimentacao.id) }}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-file-alt"></i> Ver Relatório
+                                        </a>
+                                    {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-hourglass-half"></i> Em andamento
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if movimentacao.observacoes_abertura or movimentacao.observacoes_fechamento %}
+                                        <button class="btn btn-outline-info btn-sm ms-2" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#observacoesModal"
+                                                onclick="mostrarObservacoes('{{ movimentacao.id }}', '{{ movimentacao.observacoes_abertura or '' }}', '{{ movimentacao.observacoes_fechamento or '' }}')">
+                                            <i class="fas fa-sticky-note"></i> Obs
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Detalhes Expandidos (Opcional) -->
+                            {% if movimentacao.status == 'fechado' %}
+                            <div class="collapse mt-3" id="detalhes{{ movimentacao.id }}">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Vendas por Forma de Pagamento:</h6>
+                                        <ul class="list-unstyled small">
+                                            <li>Dinheiro: {{ "R$ {:,.2f}".format(movimentacao.vendas_dinheiro or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                            <li>Cartão Crédito: {{ "R$ {:,.2f}".format(movimentacao.vendas_cartao_credito or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                            <li>Cartão Débito: {{ "R$ {:,.2f}".format(movimentacao.vendas_cartao_debito or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                            <li>PIX: {{ "R$ {:,.2f}".format(movimentacao.vendas_pix or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Movimentações:</h6>
+                                        <ul class="list-unstyled small">
+                                            <li>Sangrias: {{ "R$ {:,.2f}".format(movimentacao.sangrias or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                            <li>Suprimentos: {{ "R$ {:,.2f}".format(movimentacao.suprimentos or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                            <li>Dinheiro Contado: {{ "R$ {:,.2f}".format(movimentacao.dinheiro_caixa or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-outline-secondary btn-sm" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#detalhes{{ movimentacao.id }}">
+                                        <i class="fas fa-chevron-up"></i> Ocultar Detalhes
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if movimentacao.status == 'fechado' %}
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    {{ movimentacao.caixa_nome or 'Caixa ' + movimentacao.numero_caixa|string }}
+                                </small>
+                                <button class="btn btn-link btn-sm p-0" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#detalhes{{ movimentacao.id }}">
+                                    <i class="fas fa-chevron-down"></i> Ver Detalhes
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <!-- Paginação -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Paginação do histórico" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('cashier.historico', page=page-1, **request.args) }}">
+                                        <i class="fas fa-chevron-left"></i> Anterior
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for p in range(1, total_pages + 1) %}
+                                {% if p <= 3 or p >= total_pages - 2 or (p >= page - 2 and p <= page + 2) %}
+                                    <li class="page-item {% if p == page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('cashier.historico', page=p, **request.args) }}">{{ p }}</a>
+                                    </li>
+                                {% elif p == 4 or p == total_pages - 3 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('cashier.historico', page=page+1, **request.args) }}">
+                                        Próximo <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                {% else %}
+                    <!-- Estado Vazio -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-5x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nenhuma movimentação encontrada</h4>
+                        <p class="text-muted">Você ainda não possui movimentações de caixa registradas ou nenhuma corresponde aos filtros aplicados.</p>
+                        <a href="{{ url_for('cashier.dashboard') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Iniciar Primeira Movimentação
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Observações -->
+<div class="modal fade" id="observacoesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sticky-note text-info"></i>
+                    Observações da Movimentação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="observacoes-content">
+                <!-- Preenchido via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function mostrarObservacoes(movimentacaoId, obsAbertura, obsFechamento) {
+    let content = '';
+    
+    if (obsAbertura) {
+        content += `
+            <div class="mb-3">
+                <h6><i class="fas fa-play-circle text-success"></i> Observações da Abertura:</h6>
+                <p class="bg-light p-3 rounded">${obsAbertura}</p>
+            </div>
+        `;
+    }
+    
+    if (obsFechamento) {
+        content += `
+            <div class="mb-3">
+                <h6><i class="fas fa-stop-circle text-danger"></i> Observações do Fechamento:</h6>
+                <p class="bg-light p-3 rounded">${obsFechamento}</p>
+            </div>
+        `;
+    }
+    
+    if (!content) {
+        content = '<p class="text-muted text-center">Nenhuma observação registrada.</p>';
+    }
+    
+    $('#observacoes-content').html(content);
+}
+
+$(document).ready(function() {
+    // Auto-submit do formulário de filtros quando mudar datas
+    $('#data_inicio, #data_fim, #status').change(function() {
+        $('#filterForm').submit();
+    });
+    
+    // Smooth scroll para detalhes expandidos
+    $('.collapse').on('shown.bs.collapse', function() {
+        $(this)[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+});
+</script>
+{% endblock %}

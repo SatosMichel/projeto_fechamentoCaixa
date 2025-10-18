@@ -1,0 +1,18 @@
+# Dependências do Sistema de Fechamento de Caixa - Brumake (Web Version)
+# Framework web e dependências principais
+Flask==2.3.3            # Framework web principal
+Flask-Session==0.5.0    # Gerenciamento de sessões
+Werkzeug==2.3.7         # Utilitários web
+Jinja2==3.1.2           # Motor de templates
+
+# Geração de relatórios
+reportlab==4.0.4        # Geração de PDFs
+Pillow==10.0.0          # Processamento de imagens
+
+# Deploy e produção
+gunicorn==21.2.0        # Servidor WSGI para produção
+python-dotenv==1.0.0    # Gerenciamento de variáveis de ambiente
+
+# Utilitários
+Requests==2.31.0       # Cliente HTTP
+python-dateutil==2.8.2 # Manipulação de datas

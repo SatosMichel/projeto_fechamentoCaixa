@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Caixa - Sistema Brumake{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .caixa-option {
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .caixa-option:hover {
+        border-color: #0066cc;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+        transform: translateY(-2px);
+    }
+    
+    .caixa-option.selected {
+        border-color: #28a745;
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    }
+    
+    .currency-display {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+    
+    .step-indicator {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-left: 4px solid #2196f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('cashier.dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Iniciar Caixa</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-play-circle text-success"></i>
+                        Iniciar Movimentação de Caixa
+                    </h2>
+                    <p class="text-muted mb-0">Preencha os dados para iniciar sua movimentação diária</p>
+                </div>
+                <div>
+                    <span class="badge bg-info fs-6">{{ session.user_name }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="form-container p-4">
+                <!-- Informações Importantes -->
+                <div class="card info-card mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-info-circle text-primary"></i>
+                            Informações Importantes
+                        </h6>
+                        <ul class="mb-0">
+                            <li>Verifique se o caixa está livre antes de iniciar</li>
+                            <li>Conte o dinheiro inicial com cuidado</li>
+                            <li>Apenas um caixa pode estar aberto por operador</li>
+                            <li>Registre observações relevantes sobre o estado inicial</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Formulário -->
+                <form method="POST" id="iniciarCaixaForm" data-autosave="true">
+                    <!-- Passo 1: Seleção do Caixa -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="step-indicator me-3">1</div>
+                            <h5 class="mb-0">Selecione o Caixa</h5>
+                        </div>
+                        
+                        <div class="row">
+                            {% for caixa in caixas %}
+                            <div class="col-lg-6 col-md-12 mb-3">
+                                <div class="card caixa-option" onclick="selecionarCaixa('{{ caixa.numero }}', this)">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-desktop text-primary"></i>
+                                            Caixa {{ caixa.numero }}
+                                        </h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ caixa.nome }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">{{ caixa.descricao or 'Sem descrição' }}</small>
+                                        </p>
+                                        <div class="status-badge">
+                                            <span class="badge bg-success">Disponível</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <input type="hidden" name="numero_caixa" id="numero_caixa" required>
+                        <div class="invalid-feedback" id="caixa-error" style="display: none;">
+                            Por favor, selecione um caixa.
+                        </div>
+                    </div>
+
+                    <!-- Passo 2: Valor Inicial -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="step-indicator me-3">2</div>
+                            <h5 class="mb-0">Valor Inicial em Dinheiro</h5>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="valor_inicial" class="form-label">
+                                    <i class="fas fa-money-bill-wave text-success"></i>
+                                    Dinheiro no Caixa (R$)
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg currency-input" 
+                                       id="valor_inicial" 
+                                       name="valor_inicial" 
+                                       placeholder="R$ 0,00"
+                                       required
+                                       data-autosave="true">
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb text-warning"></i>
+                                    Conte o dinheiro físico presente no caixa
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-success mt-4">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-calculator"></i>
+                                            Valor Digitado
+                                        </h6>
+                                        <div class="currency-display" id="valor-display">R$ 0,00</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Passo 3: Observações -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="step-indicator me-3">3</div>
+                            <h5 class="mb-0">Observações (Opcional)</h5>
+                        </div>
+                        
+                        <label for="observacoes" class="form-label">
+                            <i class="fas fa-sticky-note text-info"></i>
+                            Observações sobre a abertura
+                        </label>
+                        <textarea class="form-control" 
+                                  id="observacoes" 
+                                  name="observacoes" 
+                                  rows="3"
+                                  placeholder="Ex: Caixa com gaveta emperrada, falta de troco, etc."
+                                  data-autosave="true"></textarea>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i>
+                            Registre qualquer observação relevante sobre o estado inicial do caixa
+                        </div>
+                    </div>
+
+                    <!-- Resumo -->
+                    <div class="card border-primary mb-4" id="resumo-section" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-clipboard-check"></i>
+                                Resumo da Abertura
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Caixa:</strong> <span id="resumo-caixa">-</span></p>
+                                    <p><strong>Operador:</strong> {{ session.user_name }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Data:</strong> {{ now.strftime('%d/%m/%Y') }}</p>
+                                    <p><strong>Valor Inicial:</strong> <span id="resumo-valor">R$ 0,00</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('cashier.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Voltar
+                        </a>
+                        
+                        <button type="submit" class="btn btn-success btn-lg" id="submit-btn" disabled>
+                            <i class="fas fa-play-circle me-2"></i>
+                            Iniciar Movimentação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle text-warning"></i>
+                    Confirmar Abertura
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirma a abertura do caixa com os seguintes dados?</p>
+                <ul id="confirmacao-detalhes">
+                    <!-- Preenchido via JavaScript -->
+                </ul>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Após a confirmação, você não poderá alterar estes dados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarAbertura()">
+                    <i class="fas fa-check"></i>
+                    Confirmar Abertura
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let caixaSelecionado = null;
+
+$(document).ready(function() {
+    // Carregar dados auto-salvos
+    loadAutoSavedData('iniciarCaixaForm');
+    
+    // Atualizar display quando valor inicial mudar
+    $('#valor_inicial').on('input', function() {
+        atualizarDisplayValor();
+        atualizarResumo();
+        verificarFormulario();
+    });
+    
+    // Atualizar resumo quando observações mudarem
+    $('#observacoes').on('input', function() {
+        atualizarResumo();
+    });
+    
+    // Interceptar submit do formulário
+    $('#iniciarCaixaForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        if (validarFormulario()) {
+            mostrarModalConfirmacao();
+        }
+    });
+    
+    // Verificar formulário inicial
+    verificarFormulario();
+});
+
+function selecionarCaixa(numero, elemento) {
+    // Remover seleção anterior
+    $('.caixa-option').removeClass('selected');
+    
+    // Selecionar novo
+    $(elemento).addClass('selected');
+    caixaSelecionado = numero;
+    
+    // Atualizar campo hidden
+    $('#numero_caixa').val(numero);
+    
+    // Esconder erro
+    $('#caixa-error').hide();
+    
+    // Atualizar resumo
+    atualizarResumo();
+    verificarFormulario();
+}
+
+function atualizarDisplayValor() {
+    var valor = $('#valor_inicial').val();
+    var valorFormatado = valor || 'R$ 0,00';
+    $('#valor-display').text(valorFormatado);
+}
+
+function atualizarResumo() {
+    if (!caixaSelecionado) return;
+    
+    var valor = $('#valor_inicial').val() || 'R$ 0,00';
+    var caixaNome = $('.caixa-option.selected .card-subtitle').text() || 'Caixa ' + caixaSelecionado;
+    
+    $('#resumo-caixa').text(caixaNome);
+    $('#resumo-valor').text(valor);
+    
+    // Mostrar seção de resumo se tiver dados
+    if (caixaSelecionado && $('#valor_inicial').val()) {
+        $('#resumo-section').show();
+    } else {
+        $('#resumo-section').hide();
+    }
+}
+
+function verificarFormulario() {
+    var caixaValido = caixaSelecionado !== null;
+    var valorValido = $('#valor_inicial').val().trim() !== '';
+    
+    if (caixaValido && valorValido) {
+        $('#submit-btn').prop('disabled', false);
+    } else {
+        $('#submit-btn').prop('disabled', true);
+    }
+}
+
+function validarFormulario() {
+    var valido = true;
+    
+    // Validar caixa
+    if (!caixaSelecionado) {
+        $('#caixa-error').show();
+        valido = false;
+    }
+    
+    // Validar valor inicial
+    var valorInicial = $('#valor_inicial').val().trim();
+    if (!valorInicial) {
+        $('#valor_inicial').addClass('is-invalid');
+        valido = false;
+    } else {
+        $('#valor_inicial').removeClass('is-invalid');
+    }
+    
+    return valido;
+}
+
+function mostrarModalConfirmacao() {
+    var caixaNome = $('.caixa-option.selected .card-subtitle').text() || 'Caixa ' + caixaSelecionado;
+    var valor = $('#valor_inicial').val();
+    var observacoes = $('#observacoes').val().trim();
+    
+    var detalhes = `
+        <li><strong>Caixa:</strong> ${caixaNome}</li>
+        <li><strong>Valor Inicial:</strong> ${valor}</li>
+        <li><strong>Data/Hora:</strong> ${new Date().toLocaleString('pt-BR')}</li>
+    `;
+    
+    if (observacoes) {
+        detalhes += `<li><strong>Observações:</strong> ${observacoes}</li>`;
+    }
+    
+    $('#confirmacao-detalhes').html(detalhes);
+    $('#confirmModal').modal('show');
+}
+
+function confirmarAbertura() {
+    $('#confirmModal').modal('hide');
+    
+    // Limpar dados auto-salvos
+    clearAutoSavedData('iniciarCaixaForm');
+    
+    // Submeter formulário
+    $('#iniciarCaixaForm')[0].submit();
+}
+
+// Verificar status dos caixas em tempo real
+function verificarStatusCaixas() {
+    $.get('/cashier/api/status_caixas', function(data) {
+        if (data.success) {
+            // Atualizar status visual dos caixas
+            data.caixas.forEach(function(caixa) {
+                var elemento = $(`.caixa-option[data-caixa="${caixa.numero}"]`);
+                if (caixa.em_uso) {
+                    elemento.find('.status-badge').html('<span class="badge bg-warning">Em Uso</span>');
+                    elemento.addClass('disabled').off('click');
+                } else {
+                    elemento.find('.status-badge').html('<span class="badge bg-success">Disponível</span>');
+                }
+            });
+        }
+    });
+}
+
+// Verificar status a cada 30 segundos
+setInterval(verificarStatusCaixas, 30000);
+</script>
+{% endblock %}
