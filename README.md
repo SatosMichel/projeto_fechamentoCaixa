@@ -1,41 +1,62 @@
 # Sistema de Fechamento de Caixa - Brumake
 
-## Descrição
-# 🏢 Sistema de Fechamento de Caixa - Brumake
+Projeto em Python/Flask para gerir o fechamento dos 4 caixas da empresa Brumake.
 
-Sistema web completo para gerenciamento e fechamento de caixas da empresa Brumake Comercial e Serviços LTDA.
-- **Usuário Master**: Controle de acessos e gerenciamento de contas
-- **Usuários Avançados**: Acesso completo ao fluxo do programa
-- **Usuários Caixa**: Acesso apenas aos lançamentos de seus respectivos caixas
+## Visão geral
+- Back-end: Flask
+- Banco de dados: SQLite
+- Front-end: Templates Jinja2 + Bootstrap
+- Geração de relatórios: ReportLab
 
-## Estrutura do Projeto
-```
-Projeto_FechamentoCaixa/
-├── src/
-│   ├── main.py              # Arquivo principal
-│   ├── database_manager.py  # Gerenciamento do banco de dados
-│   ├── auth_manager.py      # Sistema de autenticação
-│   ├── gui/
-│   │   ├── login_window.py  # Tela de login
-│   │   ├── master_panel.py  # Painel do usuário master
-│   │   ├── cashier_flow.py  # Fluxo do usuário caixa
-│   │   └── advanced_panel.py # Painel do usuário avançado
-│   └── utils/
-│       ├── calculations.py  # Cálculos do sistema
-│       └── pdf_generator.py # Geração de relatórios PDF
-├── database/
-│   └── brumake_caixa.db    # Banco de dados SQLite
-├── reports/                 # Relatórios gerados
-└── requirements.txt        # Dependências
+## Estrutura do projeto (resumo)
+- `app/` - aplicação Flask (rotas, templates, static)
+- `src/` - código de suporte e lógica (database_manager, utilitários)
+- `database/` - arquivo SQLite (gerado em runtime)
+- `reports/` - relatórios gerados (PDF)
+
+## Requisitos
+- Python 3.11+
+- Dependências em `requirements.txt` (flask, flask-session, reportlab, pillow, python-dateutil, werkzeug, jinja2)
+
+## Instalação (Windows PowerShell)
+1. Criar e ativar venv
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate
 ```
 
-## Como executar
-1. Instale as dependências: `pip install -r requirements.txt`
-2. Execute o programa: `python src/main.py`
+2. Instalar dependências
 
-## Funcionalidades
-- Sistema de login com níveis de acesso
-- Controle de fluxo de trabalho para operadores de caixa
-- Cálculos automáticos de sobra/falta
-- Geração de relatórios em PDF
-- Persistência de sessão para continuidade do trabalho
+```powershell
+pip install -r requirements.txt
+```
+
+3. Rodar a aplicação
+
+```powershell
+python main.py
+```
+
+4. Acessar no navegador
+
+- http://127.0.0.1:5000
+
+## Usuário master padrão
+- Usuário: `SUP`
+- Senha: `Miguel2@`
+
+## Observações e recomendações
+- O arquivo do banco (`database/brumake_caixa.db`) é gerado automaticamente.
+- Recomendo remover do commit a pasta `flask_session/` se contém dados de sessão reais — adicione ao `.gitignore`.
+- Para deploy em produção, usar um servidor WSGI (gunicorn/uvicorn) e um proxy reverso (NGINX).
+
+## Próximos passos sugeridos
+- Limpar dados sensíveis do repositório (ex.: sessão em disco)
+- Adicionar testes automatizados e CI
+- Fazer deploy em um ambiente seguro (Docker, servidor cloud)
+
+## Autor
+- Brumake Comercial e Serviços Ltda.
+
+---
